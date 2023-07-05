@@ -1,0 +1,280 @@
+let animInterval;
+// Array to store saved numbers
+let savedNumbers = [];
+
+window.addEventListener("load", updateNumbersDisplay);
+
+// Get the input element
+let numberInput = document.querySelector("#number-input");
+
+// Add an event listener to the input element
+numberInput.addEventListener("input", function() {
+  // Get the entered number
+  let number = numberInput.value;
+  
+  // Check if the number is valid
+  if (isNaN(number) || number.length < 2 || number.length > 4) {
+    // Make the text red
+    numberInput.style.color = "red";
+  } else {
+    // Make the text black
+    numberInput.style.color = "black";
+  }
+});
+
+function addNumber() {
+  // Get the input element
+  let numberInput = document.querySelector("#number-input");
+  
+  // Get the entered number
+  let number = numberInput.value;
+  
+  // Check if the number is valid
+  if (isNaN(number)) {
+    // Make the text red
+    numberInput.style.color = "red";
+    
+    // Show an error message
+    alert("Please enter a valid number");
+    
+    return;
+  } else {
+    // Make the text black
+    numberInput.style.color = "black";
+  }
+  
+  // Check the length of the number and categorize accordingly
+  switch (number.length) {
+    case 4:
+      // Save the number as a 4-digit number
+      savedNumbers.push({ number: number, category: "4 digits" });
+      break;
+    case 3:
+      // Save the number as a 3-digit number
+      savedNumbers.push({ number: number, category: "3 digits" });
+      break;
+    case 2:
+      // Save the number as a 2-digit number
+      savedNumbers.push({ number: number, category: "2 digits" });
+      break;
+    default:
+      // Show an error message for invalid length
+      alert("Please enter a number with 2 to 4 digits");
+      return;
+  }
+  
+  // Update the display
+  updateNumbersDisplay();
+}
+
+// Function to update the display of saved numbers
+function updateNumbersDisplay() {
+  // Create sublists for each category
+  const categorySubListMap = {
+    '2 digits': [],
+    '3 digits': [],
+    '4 digits': [],
+  };
+
+  // Collect numbers for respective categories
+  for (let i = 0; i < savedNumbers.length; i++) {
+    const number = savedNumbers[i];
+    categorySubListMap[number.category].push(number.number);
+  }
+
+  // Update the value of each textarea element
+  document.querySelector("#two-digits").value = categorySubListMap['2 digits'].join("\n");
+  document.querySelector("#three-digits").value = categorySubListMap['3 digits'].join("\n");
+  document.querySelector("#four-digits").value = categorySubListMap['4 digits'].join("\n");
+}
+
+const drawNumbers = () => {
+  disableDrawBtn();
+  hideDrawText();
+  showHourglass();
+  startHourglassAnim();
+  clearNumBoxes();
+
+  const midBoxes = Array.from(document.querySelectorAll('.middle-section-container .number-box span'));
+  const botBoxes = Array.from(document.querySelectorAll('.bottom-section-container .number-box span'));
+
+  fillBoxesWithRandNums(midBoxes.concat(botBoxes), () => {
+    pulseNums(midBoxes);
+
+    setTimeout(() => {
+      moveNumToTop(midBoxes, () => {
+        resetMidBoxes(midBoxes);
+        setTimeout(() => {
+          fillEmptyMidBoxes();
+          enableDrawBtn();
+          resetBtn();
+        }, 1000);
+      });
+    },30000);
+  });
+}
+
+
+const disableDrawBtn = () => {
+  const drawBtn = document.querySelector('button');
+  drawBtn.disabled = true;
+}
+
+const hideDrawText = () => {
+  const drawText = document.querySelector('#draw-text');
+  drawText.style.display = 'none';
+}
+
+const showHourglass = () => {
+  const hourglass = document.querySelector('#hourglass');
+  hourglass.style.display = 'inline';
+}
+
+const startHourglassAnim = () => {
+  let animFrame = 0;
+  animInterval = setInterval(() => {
+    const hourglass = document.querySelector('#hourglass');
+    hourglass.textContent = ['⌛', '⏳'][animFrame % 2];
+    animFrame++;
+  }, 500);
+}
+
+const clearNumBoxes = () => {
+  const numBoxes = document.querySelectorAll('.number-box span');
+  numBoxes.forEach(box => {
+    box.textContent = '';
+  });
+}
+
+const fillBoxesWithRandNums = (boxes, callback) => {
+    boxes.sort(() => Math.random() -0.5);
+    boxes.forEach((box, index) => {
+        setTimeout(() => {
+            box.textContent = genRandNum();
+            fadeIn(box);
+            if (index === boxes.length -1) {
+                callback();
+            }
+        }, index *1000);
+    });
+}
+
+const genRandNum = () => {
+    let result = '';
+    for (let i=0; i<4; i++) {
+        result += Math.floor(Math.random() *10);
+    }
+    return result;
+}
+
+const fadeIn = (element) => {
+    let opacity =0;
+    element.style.opacity = opacity;
+    const interval = setInterval(() => {
+        opacity +=0.1;
+        element.style.opacity = opacity;
+        if(opacity >=1) clearInterval(interval);
+    },50);
+}
+
+const pulseNums = (boxes) => {
+    boxes.forEach((box, index) => {
+        setTimeout(() => {
+            box.animate([
+                {color: 'black', opacity:1},
+                {color: 'black', opacity:0},
+                {color: 'maroon', opacity:1},
+                {color: 'maroon', opacity:0},
+                {color: 'maroon', opacity:1}
+            ],{
+                duration:2000,
+                iterations:Infinity
+            });
+        }, index *100);
+    });
+}
+
+const moveNumToTop = (boxes, callback) => {
+    const topLabels = ['3rd', '2nd', '1st'];
+    
+    topLabels.forEach((label, index) => {
+        setTimeout(() => {
+            const boxToMoveIndex = Math.floor(Math.random() *boxes.length);
+            const boxToMove = boxes[boxToMoveIndex];
+            boxes.splice(boxToMoveIndex,1);
+            
+            boxToMove.getAnimations().forEach(animation => animation.cancel());
+            boxToMove.style.color ='maroon';
+            boxToMove.style.fontWeight ='bold';
+            
+            setTimeout(() => {
+              const topBox = document.querySelector(`.top-section-container[data-label="${label}"] .number-box span`);
+              topBox.textContent = boxToMove.textContent;
+              topBox.style.color ='maroon';
+              topBox.style.fontWeight ='bold';
+              
+              fadeIn(topBox);
+              
+              if (index === topLabels.length -1) {
+                  callback();
+              }
+              
+              boxToMove.textContent ='';
+            },1000);
+            
+        }, index *3000);
+    });
+}
+
+const resetMidBoxes = (boxes) => {
+    boxes.forEach(box => {
+        box.getAnimations().forEach(animation => animation.cancel());
+        box.style.color ='';
+        box.style.fontWeight ='';
+    });
+}
+
+const fillEmptyMidBoxes = () => {
+    const midBoxesAtoJ = Array.from(document.querySelectorAll('.middle-section-container[data-label="a"] .number-box span, .middle-section-container[data-label="b"] .number-box span, .middle-section-container[data-label="c"] .number-box span, .middle-section-container[data-label="d"] .number-box span, .middle-section-container[data-label="e"] .number-box span, .middle-section-container[data-label="f"] .number-box span, .middle-section-container[data-label="g"] .number-box span, .middle-section-container[data-label="h"] .number-box span, .middle-section-container[data-label="i"] .number-box span, .middle-section-container[data-label="j"] .number-box span'));
+    let midBoxesKtoM = Array.from(document.querySelectorAll('.middle-section-container[data-label="k"] .number-box span, .middle-section-container[data-label="l"] .number-box span, .middle-section-container[data-label="m"] .number-box span'));
+
+    let emptyMidBoxesAtoJ = midBoxesAtoJ.filter(box => !box.textContent);
+
+    while (emptyMidBoxesAtoJ.length > 0 && midBoxesKtoM.length > 0) {
+      emptyMidBoxesAtoJ.forEach((box, index) => {
+        if (index < midBoxesKtoM.length) {
+          box.textContent = midBoxesKtoM[index].textContent;
+          midBoxesKtoM[index].textContent = '';
+
+          // Reset the style of the box
+          box.style.color = '';
+          box.style.fontWeight = '';
+        }
+      });
+
+      midBoxesKtoM = midBoxesKtoM.slice(emptyMidBoxesAtoJ.length);
+      emptyMidBoxesAtoJ = midBoxesAtoJ.filter(box => !box.textContent);
+    }
+
+    // Always fill the k, l, and m boxes with '----'
+    document.querySelectorAll('.middle-section-container[data-label="k"] .number-box span, .middle-section-container[data-label="l"] .number-box span, .middle-section-container[data-label="m"] .number-box span').forEach(box => {
+      box.textContent = '----';
+    });
+}
+
+const enableDrawBtn = () => {
+  const drawBtn = document.querySelector('button');
+  drawBtn.disabled = false;
+}
+
+const resetBtn = () => {
+  const hourglass = document.querySelector('#hourglass');
+  hourglass.style.display = 'none';
+
+  const drawText = document.querySelector('#draw-text');
+  drawText.style.display = 'inline';
+}
+
+// Make sure to clear the animation interval when it's no longer needed
+// For example, when the drawNumbers function has finished its work
+clearInterval(animInterval);
